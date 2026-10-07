@@ -7,6 +7,7 @@ typedef struct {
     char descricao[256];
     int prioridade;
     int tempo_estimado;
+    int ativa; // 1 = disponivel no cadastro, 0 = enviada para fila
 } Tarefa;
 
 typedef struct Nodo {
@@ -134,11 +135,6 @@ void ordenarInsertionSort(Tarefa* array, int tamanho, int criterio) {
 int main() {
     Tarefa* lista_base = (Tarefa*)malloc(sizeof(Tarefa) * 100);
     int total_tarefas = 0;
-    int tarefas_ativas[100];
-    
-    for (int i = 0; i < 100; i++) {
-        tarefas_ativas[i] = 1;
-    }
     
     Fila fila = {NULL, NULL};
     Pilha pilha = {NULL};
@@ -160,7 +156,7 @@ int main() {
         
         if (opcao == 1) {
             if (total_tarefas >= 100) {
-                printf("Limite de tarefas atingido.\n");
+                printf("Erro: Limite de tarefas atingido.\n");
                 continue;
             }
             
@@ -172,19 +168,21 @@ int main() {
             fgets(lista_base[total_tarefas].descricao, 256, stdin);
             lista_base[total_tarefas].descricao[strcspn(lista_base[total_tarefas].descricao, "\n")] = 0;
             
-            printf("Prioridade (1-10): ");
-            scanf("%d", &lista_base[total_tarefas].prioridade);
-            getchar();
-            
-            if (lista_base[total_tarefas].prioridade < 1 || lista_base[total_tarefas].prioridade > 10) {
-                printf("Erro: Prioridade deve estar entre 1 e 10.\n");
-                continue;
-            }
+            // Loop de validacao de estado estrito (sem ejetar para o menu principal)
+            do {
+                printf("Prioridade (1-10): ");
+                scanf("%d", &lista_base[total_tarefas].prioridade);
+                getchar();
+                if (lista_base[total_tarefas].prioridade < 1 || lista_base[total_tarefas].prioridade > 10) {
+                    printf("Erro: Prioridade invalida. Deve ser entre 1 e 10.\n");
+                }
+            } while (lista_base[total_tarefas].prioridade < 1 || lista_base[total_tarefas].prioridade > 10);
             
             printf("Tempo estimado (minutos): ");
             scanf("%d", &lista_base[total_tarefas].tempo_estimado);
             getchar();
             
+            lista_base[total_tarefas].ativa = 1; // Acopla o estado a entidade
             printf("Tarefa cadastrada com sucesso.\n");
             total_tarefas++;
             
@@ -192,7 +190,7 @@ int main() {
             printf("\n=== TAREFAS CADASTRADAS ===\n");
             int encontrou = 0;
             for (int i = 0; i < total_tarefas; i++) {
-                if (tarefas_ativas[i]) {
+                if (lista_base[i].ativa == 1) {
                     printf("%d. ID: %d | Descricao: %s | Prioridade: %d | Tempo: %d min\n",
                            i + 1, lista_base[i].id, lista_base[i].descricao,
                            lista_base[i].prioridade, lista_base[i].tempo_estimado);
@@ -240,7 +238,7 @@ int main() {
             printf("\n=== TAREFAS DISPONIVEIS ===\n");
             int encontrou = 0;
             for (int i = 0; i < total_tarefas; i++) {
-                if (tarefas_ativas[i]) {
+                if (lista_base[i].ativa == 1) {
                     printf("%d. ID: %d | Descricao: %s\n",
                            i + 1, lista_base[i].id, lista_base[i].descricao);
                     encontrou = 1;
@@ -257,13 +255,13 @@ int main() {
             scanf("%d", &indice);
             getchar();
             
-            if (indice < 1 || indice > total_tarefas || !tarefas_ativas[indice - 1]) {
+            if (indice < 1 || indice > total_tarefas || lista_base[indice - 1].ativa == 0) {
                 printf("Indice invalido.\n");
                 continue;
             }
             
             inserirFila(&fila, lista_base[indice - 1]);
-            tarefas_ativas[indice - 1] = 0;
+            lista_base[indice - 1].ativa = 0; // Baixa correta do estado no objeto original
             printf("Tarefa adicionada a fila.\n");
             
         } else if (opcao == 5) {
